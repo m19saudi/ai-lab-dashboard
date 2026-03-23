@@ -18,9 +18,10 @@ module.exports = async function handler(req, res) {
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
 
+      // Build prompt per sample
       const prompt = `Analyze this water sample briefly:
 pH=${row.pH}, Calcium=${row.Ca}, Magnesium=${row.Mg}, Chloride=${row.Cl}.
-Say if values are normal, high, or low.`;
+Say if values are normal, high, or low in simple language.`;
 
       const response = await fetch(
         "https://api-inference.huggingface.co/models/google/flan-t5-small",
@@ -36,8 +37,8 @@ Say if values are normal, high, or low.`;
 
       const result = await response.json();
 
+      // Extract text safely
       let text = "No response";
-
       if (Array.isArray(result) && result[0]?.generated_text) {
         text = result[0].generated_text;
       } else if (typeof result === "string") {
@@ -46,11 +47,11 @@ Say if values are normal, high, or low.`;
         text = result.generated_text;
       }
 
-      // 🔥 Build EXACT format your frontend expects
-      finalText += `Sample ${row.SampleID || row.id || "S" + (i + 1)} Analysis:\n${text}\n\n`;
+      const sampleID = row.SampleID || row.id || `S${i + 1}`;
+      finalText += `Sample ${sampleID} Analysis:\n${text}\n\n`;
     }
 
-    // ✅ RETURN SAME STRUCTURE YOUR FRONTEND USES
+    // ✅ Return single string for frontend
     res.status(200).json({ text: finalText });
 
   } catch (err) {

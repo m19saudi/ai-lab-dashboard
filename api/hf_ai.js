@@ -13,15 +13,14 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const results = [];
+    let finalText = "";
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
 
-      // Build prompt per sample
-      const prompt = `Analyze this water sample and give a short clear statement:
+      const prompt = `Analyze this water sample briefly:
 pH=${row.pH}, Calcium=${row.Ca}, Magnesium=${row.Mg}, Chloride=${row.Cl}.
-Say if each is normal, high, or low.`;
+Say if values are normal, high, or low.`;
 
       const response = await fetch(
         "https://api-inference.huggingface.co/models/google/flan-t5-small",
@@ -37,25 +36,22 @@ Say if each is normal, high, or low.`;
 
       const result = await response.json();
 
-      // Extract text safely
       let text = "No response";
-      if (Array.isArray(result)) {
-        if (result[0]?.generated_text) text = result[0].generated_text;
-        else if (typeof result[0] === "string") text = result[0];
+
+      if (Array.isArray(result) && result[0]?.generated_text) {
+        text = result[0].generated_text;
       } else if (typeof result === "string") {
         text = result;
       } else if (result?.generated_text) {
         text = result.generated_text;
       }
 
-      results.push({
-        SampleID: row.SampleID || `S${i + 1}`,
-        text
-      });
+      // 🔥 Build EXACT format your frontend expects
+      finalText += `Sample ${row.SampleID || "S" + (i + 1)} Analysis:\n${text}\n\n`;
     }
 
-    // ✅ Return array (this matches your original frontend)
-    res.status(200).json({ results });
+    // ✅ RETURN SAME STRUCTURE YOUR FRONTEND USES
+    res.status(200).json({ text: finalText });
 
   } catch (err) {
     console.error(err);

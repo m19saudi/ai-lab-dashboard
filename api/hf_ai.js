@@ -47,7 +47,7 @@ Say if values are normal, high, or low.`;
       }
 
       // 🔥 Build EXACT format your frontend expects
-      finalText += `Sample ${row.SampleID || "S" + (i + 1)} Analysis:\n${text}\n\n`;
+      finalText += `Sample ${row.SampleID || row.id || "S" + (i + 1)} Analysis:\n${text}\n\n`;
     }
 
     // ✅ RETURN SAME STRUCTURE YOUR FRONTEND USES

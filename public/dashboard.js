@@ -43,25 +43,21 @@ async function processCSV(){
     samples = await readCSV(file);
     updateTrendsAndAlerts();
 
-    let aiOutput = "";
-    for(const s of samples){
-        const prompt = `Sample ${s.id}: pH ${s.pH}, Ca ${s.Ca} mg/L, Mg ${s.Mg} mg/L, Cl ${s.Cl} mg/L.
-Analyze water type, risks (scaling/corrosion), and recommendations in simple language.`;
+    try {
+    const response = await fetch("/api/hf_ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: samples }) // 🔥 send ALL samples
+    });
 
-        try{
-            const response = await fetch("/api/hf_ai", {
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({prompt})
-            });
-            const data = await response.json();
-            aiOutput += `Sample ${s.id} Analysis:\n${data.text}\n\n`;
-        }catch(e){
-            aiOutput += `Sample ${s.id} Analysis: Error calling AI\n\n`;
-        }
-    }
+    const result = await response.json();
 
-    document.getElementById('ai-output').innerText = aiOutput;
+    // ✅ Display AI output directly
+    document.getElementById('ai-output').innerText = result.text || "No response";
+
+} catch (e) {
+    document.getElementById('ai-output').innerText = "Error calling AI";
+}
 }
 
 // Update trend chart and alerts

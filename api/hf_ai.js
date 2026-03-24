@@ -8,51 +8,41 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { data } = req.body;
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  if (!data || !Array.isArray(data)) {
     return res.status(400).json({ error: "No data provided" });
   }
 
   try {
-    let finalText = "";
+    // 🔥 Build ONE strong prompt (better results)
+    let prompt = "Analyze the following water samples. For each sample, state if pH, Ca, Mg, and Cl are normal, high, or low. Also mention scaling or corrosion risk briefly.\n\n";
 
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
+    data.forEach((row, i) => {
+      const id = row.id || `S${i+1}`;
+      prompt += `Sample ${id}: pH=${row.pH}, Ca=${row.Ca}, Mg=${row.Mg}, Cl=${row.Cl}\n`;
+    });
 
-      // Build prompt per sample
-      const prompt = `Analyze this water sample briefly:
-pH=${row.pH}, Calcium=${row.Ca}, Magnesium=${row.Mg}, Chloride=${row.Cl}.
-Say if values are normal, high, or low in simple language.`;
-
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/google/flan-t5-small",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.HF_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ inputs: prompt })
-        }
-      );
-
-      const result = await response.json();
-
-      // Extract text safely
-      let text = "No response";
-      if (Array.isArray(result) && result[0]?.generated_text) {
-        text = result[0].generated_text;
-      } else if (typeof result === "string") {
-        text = result;
-      } else if (result?.generated_text) {
-        text = result.generated_text;
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }]
+        })
       }
+    );
 
-      const sampleID = row.SampleID || row.id || `S${i + 1}`;
-      finalText += `Sample ${sampleID} Analysis:\n${text}\n\n`;
+    const result = await response.json();
+
+    let text = "No response";
+
+    if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
+      text = result.candidates[0].content.parts[0].text;
     }
 
-    // ✅ Return single string for frontend
-    res.status(200).json({ text: finalText });
+    res.status(200).json({ text });
 
   } catch (err) {
     console.error(err);

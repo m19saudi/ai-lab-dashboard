@@ -13,8 +13,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 🔥 Build ONE strong prompt (better results)
-    let prompt = "Analyze the following water samples. For each sample, state if pH, Ca, Mg, and Cl are normal, high, or low. Also mention scaling or corrosion risk briefly.\n\n";
+    // 🔥 Build prompt
+    let prompt = "Analyze each water sample. Say if pH, Ca, Mg, Cl are normal, high, or low. Keep it short.\n\n";
 
     data.forEach((row, i) => {
       const id = row.id || `S${i+1}`;
@@ -27,19 +27,29 @@ module.exports = async function handler(req, res) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
+          contents: [{ parts: [{ text: prompt }] }]
         })
       }
     );
 
-    const result = await response.json();
+    const raw = await response.json();
 
+    // 🔥 DEBUG (IMPORTANT)
+    console.log("Gemini RAW:", JSON.stringify(raw));
+
+    // ✅ Extract safely
     let text = "No response";
 
-    if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
-      text = result.candidates[0].content.parts[0].text;
+    if (raw?.candidates?.length > 0) {
+      const parts = raw.candidates[0].content?.parts;
+      if (parts && parts.length > 0) {
+        text = parts.map(p => p.text).join("\n");
+      }
+    }
+
+    // 🔥 If still empty, show raw for debugging
+    if (text === "No response") {
+      text = JSON.stringify(raw);
     }
 
     res.status(200).json({ text });

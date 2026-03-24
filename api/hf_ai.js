@@ -21,9 +21,9 @@ module.exports = async function handler(req, res) {
       prompt += `Sample ${id}: pH=${row.pH}, Ca=${row.Ca}, Mg=${row.Mg}, Cl=${row.Cl}\n`;
     });
 
-    // ✅ Using the STABLE v1 endpoint and gemini-2.5-flash
+    // ✅ Using the STABLE v1 endpoint and gemini-3.5-flash-lite
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+       `https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite-preview:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
